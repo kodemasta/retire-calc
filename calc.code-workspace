@@ -1,0 +1,33 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+        "python.terminal.activateEnvironment": true
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Run calc.py",
+                "type": "debugpy",
+                "request": "launch",
+                "program": "${workspaceFolder}/calc.py",
+                "console": "integratedTerminal",
+                "justMyCode": true
+            },
+            {
+                "name": "Debug calc.py",
+                "type": "debugpy",
+                "request": "launch",
+                "program": "${workspaceFolder}/calc.py",
+                "console": "integratedTerminal",
+                "justMyCode": false,
+                "stopOnEntry": false
+            }
+        ]
+    }
+}
