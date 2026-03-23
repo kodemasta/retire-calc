@@ -1,0 +1,18 @@
+name: Build macOS App
+on: [push]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt pyinstaller
+      - run: pyinstaller --onefile --windowed --name "Retirement Calculator" calc.py
+      - name: Zip app bundle
+        run: zip -r dist/calc-macos.zip "dist/Retirement Calculator.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calc-macos
+          path: dist/calc-macos.zip
