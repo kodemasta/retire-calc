@@ -165,17 +165,14 @@ def funds_survive_to_max_age(budget_value, start_age, retire_age, start_soc_sec,
     }
     remaining = initial_amount
     soc_sec_monthly = soc_sec_payment
-    annual_expenditure = (remaining * (budget_value / 100) if use_pct
+    annual_expenditure = (initial_amount * (budget_value / 100) if use_pct
                           else budget_value * MONTHS_PER_YEAR)
     current_age = start_age
 
     while remaining >= annual_expenditure and current_age < max_age:
-        if use_pct:
-            annual_expenditure = remaining * (budget_value / 100)
         year = calculate_year(remaining, current_age, soc_sec_monthly, annual_expenditure, inputs)
         remaining = year["remaining"]
-        if not use_pct:
-            annual_expenditure *= 1 + inflation / 100
+        annual_expenditure *= 1 + inflation / 100
         soc_sec_monthly *= 1 + inflation / 100
         current_age += 1
 
@@ -221,9 +218,6 @@ def run_simulation(inputs: dict) -> dict:
     year_records = []
 
     while remaining >= annual_expenditure and current_age < inputs["max_age"]:
-        if use_pct:
-            annual_expenditure = remaining * (inputs["annual_reduction_rate"] / 100)
-
         spend_pct = (annual_expenditure / remaining) * 100
         ages.append(current_age)
         remaining_amounts.append(remaining)
@@ -248,8 +242,7 @@ def run_simulation(inputs: dict) -> dict:
             "remaining":          remaining,
         })
 
-        if not use_pct:
-            annual_expenditure *= 1 + inputs["inflation"] / 100
+        annual_expenditure *= 1 + inputs["inflation"] / 100
         soc_sec_monthly *= 1 + inputs["inflation"] / 100
         total_years  += 1
         current_age  += 1

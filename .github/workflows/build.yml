@@ -1,16 +1,55 @@
-name: Build Windows Executable
+name: Build Installers
 on: [push]
+
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: calc-windows
+            asset: dist/calc.exe
+            pyinstaller_args: --onefile --windowed --name calc
+            zip: false
+          - os: macos-latest
+            artifact: calc-macos
+            asset: dist/calc-macos.zip
+            pyinstaller_args: --onefile --windowed --name calc
+            zip: true
+          - os: ubuntu-latest
+            artifact: calc-linux
+            asset: dist/calc-linux.tar.gz
+            pyinstaller_args: --onefile --name calc
+            zip: true
+
+    runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt pyinstaller
-      - run: pyinstaller --onefile --windowed calc.py
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Install tkinter (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get install -y python3-tk
+
+      - name: Build with PyInstaller
+        run: pyinstaller ${{ matrix.pyinstaller_args }} calc.py
+
+      - name: Package (macOS)
+        if: matrix.os == 'macos-latest'
+        run: zip -r dist/calc-macos.zip dist/calc.app
+
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: tar -czf dist/calc-linux.tar.gz -C dist calc
+
       - uses: actions/upload-artifact@v4
         with:
-          name: calc-windows
-          path: dist/calc.exe
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.asset }}
