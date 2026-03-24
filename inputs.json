@@ -1,13 +1,13 @@
 {
   "start_age": "62",
   "retire_age": "62",
-  "start_soc_sec": "63",
+  "start_soc_sec": "62",
   "soc_sec_payment": "3000",
-  "initial_amount": "5000000",
+  "initial_amount": "1000000",
   "monthly_expenditure": "10000",
   "annual_reduction_rate": "",
   "interest_rate": "5.0",
   "tax_rate": "18.0",
   "inflation_rate": "2.5",
-  "annual_work_amount": "160000"
+  "annual_work_amount": "150000"
 }
