@@ -17,8 +17,13 @@ jobs:
             pyinstaller_args: --onefile --windowed --name calc
             zip: true
           - os: ubuntu-22.04
-            artifact: calc-linux
-            asset: dist/calc-linux.tar.gz
+            artifact: calc-linux-22.04
+            asset: dist/calc-linux-22.04.tar.gz
+            pyinstaller_args: --onefile --name calc
+            zip: true
+          - os: ubuntu-24.04
+            artifact: calc-linux-24.04
+            asset: dist/calc-linux-24.04.tar.gz
             pyinstaller_args: --onefile --name calc
             zip: true
 
@@ -35,7 +40,7 @@ jobs:
         run: pip install -r requirements.txt pyinstaller
 
       - name: Install tkinter (Ubuntu)
-        if: matrix.os == 'ubuntu-22.04'
+        if: startsWith(matrix.os, 'ubuntu-')
         run: sudo apt-get install -y python3-tk
 
       - name: Build with PyInstaller
@@ -46,8 +51,8 @@ jobs:
         run: zip -r dist/calc-macos.zip dist/calc.app
 
       - name: Package (Linux)
-        if: matrix.os == 'ubuntu-22.04'
-        run: tar -czf dist/calc-linux.tar.gz -C dist calc
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: tar -czf ${{ matrix.asset }} -C dist calc
 
       - uses: actions/upload-artifact@v4
         with:
