@@ -301,8 +301,12 @@ def display_results(inputs: dict, results: dict):
     summary_text.insert(tk.END,
         f"Initial Investment: {fmt_dollars(inputs['initial_amount'])}  |  ROI: {inputs['interest']}%  |  "
         f"Tax Rate: {inputs['tax_rate']}%  |  Inflation Rate: {inputs['inflation']}%\n")
+    if inputs["use_pct_budget"] and results["year_records"]:
+        initial_monthly = results["year_records"][0]["annual_expenditure"] / MONTHS_PER_YEAR
+    else:
+        initial_monthly = inputs["monthly_expenditure"]
     summary_text.insert(tk.END,
-        f"Initial Monthly Budget: {fmt_dollars(inputs['monthly_expenditure'])}\n")
+        f"Initial Monthly Budget: {fmt_dollars(initial_monthly)}\n")
 
     if inputs["annual_work_amount"]:
         summary_text.insert(tk.END,
@@ -350,6 +354,11 @@ def simulate_retirement():
     results = run_simulation(inputs)
     display_results(inputs, results)
     plot_remaining_amount(results["ages"], results["remaining_amounts"])
+    remaining_entry.config(bg="lightgreen")
+    until_age_entry.config(bg="lightgreen")
+    total_spend_entry.config(bg="lightgreen")
+    annual_reduction_entry.config(bg="white")
+    monthly_expenditure_entry.config(bg="white")
 
 
 def find_optimal_budget():
@@ -373,16 +382,22 @@ def find_optimal_budget():
             0.0, 100.0), 2)
         annual_reduction_entry.delete(0, tk.END)
         annual_reduction_entry.insert(0, str(optimal))
-        annual_reduction_entry.config(bg="plum")
     else:
         optimal = math.floor(binary_search(
             lambda v: funds_survive_to_max_age(v, *survive_args, use_pct=False),
             0.0, inputs["initial_amount"] / MONTHS_PER_YEAR))
         monthly_expenditure_entry.delete(0, tk.END)
         monthly_expenditure_entry.insert(0, str(optimal))
-        monthly_expenditure_entry.config(bg="plum")
 
     simulate_retirement()
+
+    remaining_entry.config(bg="plum")
+    until_age_entry.config(bg="plum")
+    total_spend_entry.config(bg="plum")
+    if use_pct:
+        annual_reduction_entry.config(bg="plum")
+    else:
+        monthly_expenditure_entry.config(bg="plum")
 
 # ---------------------------------------------------------------------------
 # Chart
