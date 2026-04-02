@@ -475,7 +475,7 @@ def main():
             value=max(DEFAULT_VALUES["start_soc_sec"], start_age),
         )
         soc_sec_payment = st.number_input(
-            "Social Security Monthly Payment ($)",
+            "Social Security Monthly 💵",
             min_value=0.0,
             value=DEFAULT_VALUES["soc_sec_payment"],
             step=100.0,
