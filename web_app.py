@@ -61,10 +61,9 @@ def calculate_year(remaining, current_age, soc_sec_monthly, annual_expenditure, 
     if current_age >= start_soc_sec:
         annual_soc_security = MONTHS_PER_YEAR * soc_sec_monthly
 
-    annual_tax_loss = (
-        (annual_raw_gain + annual_soc_security * SS_TAXABLE_PCT) * (tax_rate / 100)
-        + work_income_tax
-    )
+    annual_tax_loss = (annual_raw_gain + annual_soc_security * SS_TAXABLE_PCT) * (
+        tax_rate / 100
+    ) + work_income_tax
     annual_taxed_gain = annual_soc_security + annual_raw_gain - annual_tax_loss
     remaining += annual_taxed_gain - annual_expenditure
 
@@ -157,7 +156,9 @@ def run_simulation(inputs):
         ages.append(current_age)
         remaining_amounts.append(remaining)
 
-        yr = calculate_year(remaining, current_age, soc_sec_monthly, annual_expenditure, inputs)
+        yr = calculate_year(
+            remaining, current_age, soc_sec_monthly, annual_expenditure, inputs
+        )
         remaining = yr["remaining"]
 
         total_spend += annual_expenditure
@@ -261,43 +262,57 @@ def main():
     st.title("Retirement Calculator")
     st.caption("Browser version of the retirement simulation app")
 
+    if "mode" not in st.session_state:
+        st.session_state.mode = "simulate"
+
     with st.sidebar:
-        st.header("Inputs")
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button(
+                "Simulate Retirement",
+                use_container_width=True,
+                type="primary" if st.session_state.mode == "simulate" else "secondary",
+            ):
+                st.session_state.mode = "simulate"
+        with btn_col2:
+            if st.button(
+                "Maximize Spend",
+                use_container_width=True,
+                type="primary" if st.session_state.mode == "maximize" else "secondary",
+            ):
+                st.session_state.mode = "maximize"
         start_age = st.number_input(
             "Current Age", min_value=0, max_value=120, value=DEFAULT_VALUES["start_age"]
         )
         retire_age = st.number_input(
-            "Retirement Age", min_value=0, max_value=120, value=DEFAULT_VALUES["retire_age"]
-        )
-        start_soc_sec = st.number_input(
-            "Social Security Age",
-            min_value=0,
+            "Retirement Age",
+            min_value=start_age,
             max_value=120,
-            value=DEFAULT_VALUES["start_soc_sec"],
+            value=max(DEFAULT_VALUES["retire_age"], start_age),
         )
-        soc_sec_payment = st.number_input(
-            "Social Security Monthly Payment ($)",
-            min_value=0.0,
-            value=DEFAULT_VALUES["soc_sec_payment"],
-            step=100.0,
+        max_age = st.number_input(
+            "End of Life", min_value=1, max_value=130, value=DEFAULT_VALUES["max_age"]
         )
+        if retire_age != start_age:
+            annual_work_amount = st.number_input(
+                "Annual Work Income ($)",
+                min_value=0.0,
+                value=DEFAULT_VALUES["annual_work_amount"],
+                step=5000.0,
+            )
+        else:
+            annual_work_amount = 0.0
         initial_amount = st.number_input(
             "Initial Investment ($)",
             min_value=0.0,
             value=DEFAULT_VALUES["initial_amount"],
             step=10000.0,
         )
-        annual_work_amount = st.number_input(
-            "Annual Work Income ($)",
-            min_value=0.0,
-            value=DEFAULT_VALUES["annual_work_amount"],
-            step=5000.0,
-        )
         interest = st.number_input(
-            "ROI (%)", min_value=0.0, max_value=100.0, value=DEFAULT_VALUES["interest_rate"]
-        )
-        tax_rate = st.number_input(
-            "Tax Rate (%)", min_value=0.0, max_value=100.0, value=DEFAULT_VALUES["tax_rate"]
+            "ROI (%)",
+            min_value=0.0,
+            max_value=100.0,
+            value=DEFAULT_VALUES["interest_rate"],
         )
         inflation = st.number_input(
             "Inflation Rate (%)",
@@ -305,8 +320,23 @@ def main():
             max_value=100.0,
             value=DEFAULT_VALUES["inflation_rate"],
         )
-        max_age = st.number_input(
-            "Max Age", min_value=1, max_value=130, value=DEFAULT_VALUES["max_age"]
+        tax_rate = st.number_input(
+            "Tax Rate (%)",
+            min_value=0.0,
+            max_value=100.0,
+            value=DEFAULT_VALUES["tax_rate"],
+        )
+        start_soc_sec = st.number_input(
+            "Social Security Age",
+            min_value=start_age,
+            max_value=120,
+            value=max(DEFAULT_VALUES["start_soc_sec"], start_age),
+        )
+        soc_sec_payment = st.number_input(
+            "Social Security Monthly Payment ($)",
+            min_value=0.0,
+            value=DEFAULT_VALUES["soc_sec_payment"],
+            step=100.0,
         )
 
         budget_mode = st.radio(
@@ -334,8 +364,6 @@ def main():
             )
             annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
 
-        run_clicked = st.button("Simulate Retirement", use_container_width=True)
-        optimize_clicked = st.button("Find Optimal Budget", use_container_width=True)
 
     inputs = {
         "start_age": float(start_age),
@@ -358,37 +386,49 @@ def main():
         st.error(error)
         return
 
-    if optimize_clicked:
+    if st.session_state.mode == "maximize":
         optimal = find_optimal_budget(inputs)
         if use_pct_budget:
             st.info(f"Optimal annual budget rate: {optimal}%")
             inputs["annual_reduction_rate"] = optimal
         else:
-            st.info(f"Optimal monthly budget: {fmt_dollars(optimal)}")
+            st.info(f"Maximum Monthly Spend: {fmt_dollars(optimal)}")
             inputs["monthly_expenditure"] = float(optimal)
 
-    if run_clicked or optimize_clicked:
-        results = run_simulation(inputs)
+    results = run_simulation(inputs)
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Final Age", f"{results['final_age']}")
-        c2.metric("Residual Amount", fmt_dollars(results["final_remaining"]))
-        c3.metric("Total Spend", fmt_dollars(results["total_spend"]))
-        c4.metric("Total Social Security", fmt_dollars(results["total_soc_sec"]))
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Final Age", f"{results['final_age']}")
+    c2.metric("Residual Amount", fmt_dollars(results["final_remaining"]))
+    c3.metric("Total Spend", fmt_dollars(results["total_spend"]))
+    c4.metric("Total Social Security", fmt_dollars(results["total_soc_sec"]))
 
-        if results["final_age"] >= inputs["max_age"]:
-            st.success(f"Funds not depleted. Simulation reached age {inputs['max_age']}.")
-        else:
-            st.warning(
-                f"Funds depleted after {results['total_years']} years (age {results['final_age']}, year {results['final_year']})."
-            )
-
-        draw_chart(results["ages"], results["remaining_amounts"])
-
-        with st.expander("Year-by-Year Detail", expanded=False):
-            st.dataframe(results["year_records"], use_container_width=True)
+    if results["final_age"] >= inputs["max_age"]:
+        st.success(
+            f"Funds not depleted. Simulation reached age {inputs['max_age']}."
+        )
     else:
-        st.info("Set inputs in the sidebar, then click Simulate Retirement.")
+        st.warning(
+            f"Funds depleted after {results['total_years']} years (age {results['final_age']}, year {results['final_year']})."
+        )
+
+    draw_chart(results["ages"], results["remaining_amounts"])
+
+    with st.expander("Year-by-Year Detail", expanded=False):
+        dollar_cols = {
+            "annual_expenditure", "work_income_tax", "after_tax_work_income",
+            "annual_soc_security", "annual_raw_gain", "annual_tax_loss",
+            "annual_taxed_gain", "remaining", "annual_work_amount",
+        }
+        display_records = [
+            {
+                k: round(0 if k == "annual_work_amount" and not row["working"] else v)
+                if k in dollar_cols else v
+                for k, v in row.items()
+            }
+            for row in results["year_records"]
+        ]
+        st.dataframe(display_records, use_container_width=True)
 
 
 if __name__ == "__main__":
