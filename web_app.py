@@ -278,7 +278,7 @@ def main():
     with top_col1:
         budget_mode = st.radio(
             "Budget Mode",
-            options=["Monthly Budget ($)", "Annual Budget Rate (%)"],
+            options=["Initial Monthly Budget ($)", "Annual Budget Rate (%)"],
             horizontal=False,
         )
     with top_col2:
@@ -298,7 +298,7 @@ def main():
             use_pct_budget = False
             if st.session_state.mode == "simulate":
                 monthly_expenditure = st.number_input(
-                    "Monthly Budget ($)",
+                    "Initial Monthly Budget ($)",
                     min_value=0.0,
                     value=DEFAULT_VALUES["monthly_expenditure"],
                     step=100.0,
@@ -410,7 +410,7 @@ def main():
             st.info(f"Optimal annual budget rate: {optimal}%")
             inputs["annual_reduction_rate"] = optimal
         else:
-            st.info(f"Maximum Monthly Spend: ${round(optimal):,}")
+            st.info(f"Maximum Starting Monthly Budget: ${round(optimal):,}")
             inputs["monthly_expenditure"] = float(optimal)
 
     results = run_simulation(inputs)
