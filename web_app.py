@@ -274,38 +274,37 @@ def main():
     def set_mode(mode):
         st.session_state.mode = mode
 
-    top_col1, top_col2 = st.columns(2)
-    with top_col1:
-        budget_mode = st.radio(
-            "Budget Mode",
-            options=["Initial Monthly Budget ($)", "Annual Budget Rate (%)"],
-            horizontal=False,
-        )
-    with top_col2:
-        if budget_mode == "Annual Budget Rate (%)":
-            use_pct_budget = True
-            if st.session_state.mode == "simulate":
+    if st.session_state.mode == "simulate":
+        top_col1, top_col2 = st.columns(2)
+        with top_col1:
+            budget_mode = st.radio(
+                "Budget Mode",
+                options=["Initial Monthly Budget ($)", "Annual Budget Rate (%)"],
+                horizontal=False,
+            )
+        with top_col2:
+            if budget_mode == "Annual Budget Rate (%)":
+                use_pct_budget = True
                 annual_reduction_rate = st.number_input(
                     "Annual Budget Rate (%)",
                     min_value=0.0,
                     max_value=100.0,
                     value=DEFAULT_VALUES["annual_reduction_rate"],
                 )
+                monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
             else:
-                annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
-            monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
-        else:
-            use_pct_budget = False
-            if st.session_state.mode == "simulate":
+                use_pct_budget = False
                 monthly_expenditure = st.number_input(
                     "Initial Monthly Budget ($)",
                     min_value=0.0,
                     value=DEFAULT_VALUES["monthly_expenditure"],
                     step=100.0,
                 )
-            else:
-                monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
-            annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
+                annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
+    else:
+        use_pct_budget = False
+        monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
+        annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
 
     with st.sidebar:
         btn_col1, btn_col2 = st.columns(2)
@@ -405,14 +404,33 @@ def main():
         return
 
     if st.session_state.mode == "maximize":
-        optimal = find_optimal_budget(inputs)
-        if use_pct_budget:
-            monthly_equiv = round(inputs["initial_amount"] * (optimal / 100) / MONTHS_PER_YEAR)
-            st.info(f"Optimal Annual Budget Rate: {optimal}%   |   Initial Monthly Budget: ${monthly_equiv:,}")
-            inputs["annual_reduction_rate"] = optimal
-        else:
-            st.info(f"Maximum Starting Monthly Budget: ${round(optimal):,}")
-            inputs["monthly_expenditure"] = float(optimal)
+        optimal_monthly = math.floor(
+            binary_search(
+                lambda v: funds_survive_to_max_age(v, *(
+                    inputs["start_age"], inputs["retire_age"], inputs["start_soc_sec"],
+                    inputs["soc_sec_payment"], inputs["initial_amount"],
+                    inputs["annual_work_amount"], inputs["interest"],
+                    inputs["tax_rate"], inputs["inflation"], inputs["max_age"],
+                ), use_pct=False),
+                0.0,
+                inputs["initial_amount"] / MONTHS_PER_YEAR,
+            )
+        )
+        optimal_rate = round(
+            binary_search(
+                lambda v: funds_survive_to_max_age(v, *(
+                    inputs["start_age"], inputs["retire_age"], inputs["start_soc_sec"],
+                    inputs["soc_sec_payment"], inputs["initial_amount"],
+                    inputs["annual_work_amount"], inputs["interest"],
+                    inputs["tax_rate"], inputs["inflation"], inputs["max_age"],
+                ), use_pct=True),
+                0.0,
+                100.0,
+            ),
+            2,
+        )
+        st.info(f"Maximum Starting Monthly Budget: ${optimal_monthly:,}   |   Annual Budget Rate: {optimal_rate}%")
+        inputs["monthly_expenditure"] = float(optimal_monthly)
 
     results = run_simulation(inputs)
 
