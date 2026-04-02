@@ -392,7 +392,7 @@ def main():
             st.info(f"Optimal annual budget rate: {optimal}%")
             inputs["annual_reduction_rate"] = optimal
         else:
-            st.info(f"Maximum Monthly Spend: {fmt_dollars(optimal)}")
+            st.info(f"Maximum Monthly Spend: ${round(optimal):,}")
             inputs["monthly_expenditure"] = float(optimal)
 
     results = run_simulation(inputs)
