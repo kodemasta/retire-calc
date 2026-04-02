@@ -424,7 +424,7 @@ def main():
                 args=("maximize",),
             )
         start_age = st.number_input(
-            "Current Age", min_value=0, max_value=120, value=DEFAULT_VALUES["start_age"]
+            "Current Age 🕐", min_value=0, max_value=120, value=DEFAULT_VALUES["start_age"]
         )
         retire_age = st.number_input(
             "Retirement Age",
