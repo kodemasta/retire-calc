@@ -433,7 +433,7 @@ def main():
             value=max(DEFAULT_VALUES["retire_age"], start_age),
         )
         max_age = st.number_input(
-            "End of Life", min_value=1, max_value=130, value=DEFAULT_VALUES["max_age"]
+            "End of Life 🤞", min_value=1, max_value=130, value=DEFAULT_VALUES["max_age"]
         )
         if retire_age != start_age:
             annual_work_amount = st.number_input(
