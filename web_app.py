@@ -7,10 +7,14 @@ Run locally:
 
 from datetime import datetime
 import math
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 import streamlit as st
+
+_ICON = Image.open(Path(__file__).parent / "icon.png")
 
 
 SS_TAXABLE_PCT = 0.85
@@ -353,7 +357,7 @@ def draw_chart(ages, remaining_amounts, year_records, mc_results=None):
 
 
 def main():
-    st.set_page_config(page_title="Retirement Calculator", layout="wide")
+    st.set_page_config(page_title="Retirement Calculator", page_icon=_ICON, layout="wide")
     st.markdown(
         """<style>
         div.block-container { padding-top: 1rem; }
