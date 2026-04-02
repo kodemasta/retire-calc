@@ -435,6 +435,7 @@ def main():
         max_age = st.number_input(
             "End of Life 🤞", min_value=1, max_value=130, value=DEFAULT_VALUES["max_age"]
         )
+        eol_indicator = st.empty()
         if retire_age != start_age:
             annual_work_amount = st.number_input(
                 "Annual Work Income 💵",
@@ -551,10 +552,15 @@ def main():
     c4.metric("Total Social Security", fmt_dollars(results["total_soc_sec"]))
 
     if results["final_age"] >= inputs["max_age"]:
+        eol_indicator.empty()
         st.success(
             f"Funds not depleted. Simulation reached age {inputs['max_age']}."
         )
     else:
+        eol_indicator.markdown(
+            f"<div style='background:#ff4b4b;color:white;padding:4px 8px;border-radius:4px;font-size:0.85em;'>⚠️ Funds depleted at age {results['final_age']}</div>",
+            unsafe_allow_html=True,
+        )
         st.warning(
             f"Funds depleted after {results['total_years']} years (age {results['final_age']}, year {results['final_year']})."
         )
