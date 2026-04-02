@@ -427,7 +427,7 @@ def main():
             "Current Age 🕐", min_value=0, max_value=120, value=DEFAULT_VALUES["start_age"]
         )
         retire_age = st.number_input(
-            "Retirement Age",
+            "Retirement Age 🕐",
             min_value=start_age,
             max_value=120,
             value=max(DEFAULT_VALUES["retire_age"], start_age),
@@ -469,7 +469,7 @@ def main():
             value=DEFAULT_VALUES["tax_rate"],
         )
         start_soc_sec = st.number_input(
-            "Social Security Age",
+            "Social Security Age 🕐",
             min_value=start_age,
             max_value=120,
             value=max(DEFAULT_VALUES["start_soc_sec"], start_age),
