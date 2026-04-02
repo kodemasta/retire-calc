@@ -586,14 +586,14 @@ def main():
             "annual_soc_security", "annual_raw_gain", "annual_tax_loss",
             "annual_taxed_gain", "remaining", "annual_work_amount",
         }
-        display_records = [
-            {
-                k: round(0 if k == "annual_work_amount" and not row["working"] else v)
-                if k in dollar_cols else v
-                for k, v in row.items()
-            }
-            for row in results["year_records"]
-        ]
+        display_records = []
+        for row in results["year_records"]:
+            record = {}
+            for k, v in row.items():
+                if k == "annual_expenditure":
+                    record["monthly_expenditure"] = round(v / MONTHS_PER_YEAR)
+                record[k] = round(0 if k == "annual_work_amount" and not row["working"] else v) if k in dollar_cols else v
+            display_records.append(record)
         st.dataframe(display_records, use_container_width=True)
 
 
