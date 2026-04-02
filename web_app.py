@@ -407,7 +407,8 @@ def main():
     if st.session_state.mode == "maximize":
         optimal = find_optimal_budget(inputs)
         if use_pct_budget:
-            st.info(f"Optimal annual budget rate: {optimal}%")
+            monthly_equiv = round(inputs["initial_amount"] * (optimal / 100) / MONTHS_PER_YEAR)
+            st.info(f"Optimal Annual Budget Rate: {optimal}%   |   Initial Monthly Budget: ${monthly_equiv:,}")
             inputs["annual_reduction_rate"] = optimal
         else:
             st.info(f"Maximum Starting Monthly Budget: ${round(optimal):,}")
