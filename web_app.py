@@ -437,7 +437,7 @@ def main():
         )
         if retire_age != start_age:
             annual_work_amount = st.number_input(
-                "Annual Work Income ($)",
+                "Annual Work Income 💵",
                 min_value=0.0,
                 value=DEFAULT_VALUES["annual_work_amount"],
                 step=5000.0,
