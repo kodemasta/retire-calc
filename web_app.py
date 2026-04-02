@@ -246,14 +246,24 @@ def find_optimal_budget(inputs):
     )
 
 
-def draw_chart(ages, remaining_amounts):
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.set_title("Remaining Amount vs Age")
-    ax.set_xlabel("Age")
-    ax.set_ylabel("Remaining Amount ($)")
-    ax.plot(ages, remaining_amounts, marker="o", label="Remaining Amount")
-    ax.grid(True)
-    ax.legend()
+def draw_chart(ages, remaining_amounts, year_records):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+
+    ax1.set_title("Remaining Amount vs Age")
+    ax1.set_ylabel("Remaining Amount ($)")
+    ax1.plot(ages, remaining_amounts, marker="o", label="Remaining Amount")
+    ax1.grid(True)
+    ax1.legend()
+
+    monthly_spend = [r["annual_expenditure"] / MONTHS_PER_YEAR for r in year_records]
+    ax2.set_title("Monthly Spend vs Age")
+    ax2.set_xlabel("Age")
+    ax2.set_ylabel("Monthly Spend ($)")
+    ax2.plot(ages, monthly_spend, marker="o", color="orange", label="Monthly Spend")
+    ax2.grid(True)
+    ax2.legend()
+
+    fig.tight_layout()
     st.pyplot(fig)
 
 
@@ -449,7 +459,7 @@ def main():
             f"Funds depleted after {results['total_years']} years (age {results['final_age']}, year {results['final_year']})."
         )
 
-    draw_chart(results["ages"], results["remaining_amounts"])
+    draw_chart(results["ages"], results["remaining_amounts"], results["year_records"])
 
     with st.expander("Year-by-Year Detail", expanded=False):
         dollar_cols = {
