@@ -259,28 +259,72 @@ def draw_chart(ages, remaining_amounts):
 
 def main():
     st.set_page_config(page_title="Retirement Calculator", layout="wide")
+    st.markdown(
+        """<style>
+        div.block-container { padding-top: 1rem; }
+        section[data-testid="stSidebar"] > div:first-child { padding-top: 0; }
+        </style>""",
+        unsafe_allow_html=True,
+    )
     st.title("Retirement Calculator")
-    st.caption("Browser version of the retirement simulation app")
 
     if "mode" not in st.session_state:
         st.session_state.mode = "simulate"
 
+    def set_mode(mode):
+        st.session_state.mode = mode
+
+    top_col1, top_col2 = st.columns(2)
+    with top_col1:
+        budget_mode = st.radio(
+            "Budget Mode",
+            options=["Monthly Budget ($)", "Annual Budget Rate (%)"],
+            horizontal=False,
+        )
+    with top_col2:
+        if budget_mode == "Annual Budget Rate (%)":
+            use_pct_budget = True
+            if st.session_state.mode == "simulate":
+                annual_reduction_rate = st.number_input(
+                    "Annual Budget Rate (%)",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=DEFAULT_VALUES["annual_reduction_rate"],
+                )
+            else:
+                annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
+            monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
+        else:
+            use_pct_budget = False
+            if st.session_state.mode == "simulate":
+                monthly_expenditure = st.number_input(
+                    "Monthly Budget ($)",
+                    min_value=0.0,
+                    value=DEFAULT_VALUES["monthly_expenditure"],
+                    step=100.0,
+                )
+            else:
+                monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
+            annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
+
     with st.sidebar:
         btn_col1, btn_col2 = st.columns(2)
         with btn_col1:
-            if st.button(
+            st.button(
                 "Simulate Retirement",
                 use_container_width=True,
                 type="primary" if st.session_state.mode == "simulate" else "secondary",
-            ):
-                st.session_state.mode = "simulate"
+                on_click=set_mode,
+                args=("simulate",),
+            )
         with btn_col2:
-            if st.button(
+            st.button(
                 "Maximize Spend",
                 use_container_width=True,
                 type="primary" if st.session_state.mode == "maximize" else "secondary",
-            ):
-                st.session_state.mode = "maximize"
+                on_click=set_mode,
+                args=("maximize",),
+            )
         start_age = st.number_input(
             "Current Age", min_value=0, max_value=120, value=DEFAULT_VALUES["start_age"]
         )
@@ -338,32 +382,6 @@ def main():
             value=DEFAULT_VALUES["soc_sec_payment"],
             step=100.0,
         )
-
-        budget_mode = st.radio(
-            "Budget Mode",
-            options=["Monthly Budget ($)", "Annual Budget Rate (%)"],
-            horizontal=False,
-        )
-
-        if budget_mode == "Annual Budget Rate (%)":
-            use_pct_budget = True
-            annual_reduction_rate = st.number_input(
-                "Annual Budget Rate (%)",
-                min_value=0.0,
-                max_value=100.0,
-                value=DEFAULT_VALUES["annual_reduction_rate"],
-            )
-            monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
-        else:
-            use_pct_budget = False
-            monthly_expenditure = st.number_input(
-                "Monthly Budget ($)",
-                min_value=0.0,
-                value=DEFAULT_VALUES["monthly_expenditure"],
-                step=100.0,
-            )
-            annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
-
 
     inputs = {
         "start_age": float(start_age),
