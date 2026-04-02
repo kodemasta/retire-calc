@@ -9,6 +9,7 @@ from datetime import datetime
 import math
 
 import matplotlib.pyplot as plt
+import numpy as np
 import streamlit as st
 
 
@@ -131,6 +132,80 @@ def binary_search(test_fn, low, high, iterations=BINARY_SEARCH_ITERATIONS):
     return low
 
 
+def run_mc_simulation(inputs, roi_volatility, inflation_volatility, rng):
+    """Single Monte Carlo trial — like run_simulation but with per-year random shocks."""
+    remaining = inputs["initial_amount"]
+    soc_sec_monthly = inputs["soc_sec_payment"]
+    use_pct = inputs["use_pct_budget"]
+    annual_expenditure = (
+        remaining * (inputs["annual_reduction_rate"] / 100)
+        if use_pct
+        else inputs["monthly_expenditure"] * MONTHS_PER_YEAR
+    )
+
+    mc_inputs = dict(inputs)
+    current_age = inputs["start_age"]
+    ages = []
+    remaining_amounts = []
+    monthly_spends = []
+
+    while remaining >= annual_expenditure and current_age < inputs["max_age"]:
+        ages.append(current_age)
+        remaining_amounts.append(remaining)
+        monthly_spends.append(annual_expenditure / MONTHS_PER_YEAR)
+
+        mc_inputs["interest"] = max(0.0, inputs["interest"] + rng.normal(0, roi_volatility))
+        mc_inputs["inflation"] = max(0.0, inputs["inflation"] + rng.normal(0, inflation_volatility))
+
+        yr = calculate_year(remaining, current_age, soc_sec_monthly, annual_expenditure, mc_inputs)
+        remaining = yr["remaining"]
+        annual_expenditure *= 1 + mc_inputs["inflation"] / 100
+        soc_sec_monthly *= 1 + mc_inputs["inflation"] / 100
+        current_age += 1
+
+    survived = current_age >= inputs["max_age"]
+    return ages, remaining_amounts, monthly_spends, current_age, survived
+
+
+def run_monte_carlo(inputs, roi_volatility, inflation_volatility, n_trials=500):
+    rng = np.random.default_rng()
+    trials = []
+
+    for _ in range(n_trials):
+        ages, remaining_amounts, monthly_spends, final_age, survived = run_mc_simulation(
+            inputs, roi_volatility, inflation_volatility, rng
+        )
+        trials.append((ages, remaining_amounts, monthly_spends, final_age, survived))
+
+    max_len = max(len(t[0]) for t in trials)
+    ref_ages = max((t[0] for t in trials), key=len)
+
+    all_remaining = []
+    all_spend = []
+    depletion_ages = []
+    survived_count = 0
+    for ages, remaining_amounts, monthly_spends, final_age, survived in trials:
+        pad = max_len - len(ages)
+        all_remaining.append(remaining_amounts + [0.0] * pad)
+        all_spend.append(monthly_spends + [monthly_spends[-1] if monthly_spends else 0.0] * pad)
+        if survived:
+            survived_count += 1
+        else:
+            depletion_ages.append(final_age)
+
+    arr_r = np.array(all_remaining)
+    arr_s = np.array(all_spend)
+    percentiles = [10, 50, 90]
+    return {
+        "ages": ref_ages,
+        "remaining_pcts": np.percentile(arr_r, percentiles, axis=0),
+        "spend_pcts": np.percentile(arr_s, percentiles, axis=0),
+        "survived_count": survived_count,
+        "n_trials": n_trials,
+        "depletion_ages": depletion_ages,
+    }
+
+
 def run_simulation(inputs):
     remaining = inputs["initial_amount"]
     soc_sec_monthly = inputs["soc_sec_payment"]
@@ -246,12 +321,17 @@ def find_optimal_budget(inputs):
     )
 
 
-def draw_chart(ages, remaining_amounts, year_records):
+def draw_chart(ages, remaining_amounts, year_records, mc_results=None):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
     ax1.set_title("Remaining Amount vs Age")
     ax1.set_ylabel("Remaining Amount ($)")
-    ax1.plot(ages, remaining_amounts, marker="o", label="Remaining Amount")
+    if mc_results:
+        ma = mc_results["ages"]
+        r10, r50, r90 = mc_results["remaining_pcts"]
+        ax1.fill_between(ma, r10, r90, alpha=0.2, color="steelblue", label="10th–90th pct")
+        ax1.plot(ma, r50, color="steelblue", linewidth=1.5, label="Median (MC)")
+    ax1.plot(ages, remaining_amounts, marker="o", color="navy", label="Deterministic")
     ax1.grid(True)
     ax1.legend()
 
@@ -259,7 +339,12 @@ def draw_chart(ages, remaining_amounts, year_records):
     ax2.set_title("Monthly Spend vs Age")
     ax2.set_xlabel("Age")
     ax2.set_ylabel("Monthly Spend ($)")
-    ax2.plot(ages, monthly_spend, marker="o", color="orange", label="Monthly Spend")
+    if mc_results:
+        ma = mc_results["ages"]
+        s10, s50, s90 = mc_results["spend_pcts"]
+        ax2.fill_between(ma, s10, s90, alpha=0.2, color="darkorange", label="10th–90th pct")
+        ax2.plot(ma, s50, color="darkorange", linewidth=1.5, label="Median (MC)")
+    ax2.plot(ages, monthly_spend, marker="o", color="saddlebrown", label="Deterministic")
     ax2.grid(True)
     ax2.legend()
 
@@ -392,6 +477,17 @@ def main():
             step=100.0,
         )
 
+        st.divider()
+        mc_enabled = st.toggle("Monte Carlo Simulation", value=False)
+        if mc_enabled:
+            mc_trials = st.slider("Number of Trials", min_value=100, max_value=2000, value=500, step=100)
+            roi_volatility = st.slider("ROI Volatility (±%)", min_value=0.0, max_value=15.0, value=5.0, step=0.5)
+            inflation_volatility = st.slider("Inflation Volatility (±%)", min_value=0.0, max_value=10.0, value=2.0, step=0.5)
+        else:
+            mc_trials = 500
+            roi_volatility = 5.0
+            inflation_volatility = 2.0
+
     inputs = {
         "start_age": float(start_age),
         "retire_age": float(retire_age),
@@ -459,7 +555,26 @@ def main():
             f"Funds depleted after {results['total_years']} years (age {results['final_age']}, year {results['final_year']})."
         )
 
-    draw_chart(results["ages"], results["remaining_amounts"], results["year_records"])
+    mc_results = None
+    if mc_enabled:
+        with st.spinner("Running Monte Carlo simulation…"):
+            mc_results = run_monte_carlo(inputs, roi_volatility, inflation_volatility, mc_trials)
+        survived = mc_results["survived_count"]
+        n = mc_results["n_trials"]
+        pct = 100 * survived / n
+        depletion_ages = mc_results["depletion_ages"]
+        if depletion_ages:
+            age_min = min(depletion_ages)
+            age_max = max(depletion_ages)
+            age_med = int(np.median(depletion_ages))
+            st.info(
+                f"Monte Carlo ({n} trials): {survived} survived to age {inputs['max_age']} ({pct:.0f}%). "
+                f"Of {n - survived} depleted trials, funds ran out between age {age_min}–{age_max} (median {age_med})."
+            )
+        else:
+            st.info(f"Monte Carlo ({n} trials): all {n} trials survived to age {inputs['max_age']} (100%).")
+
+    draw_chart(results["ages"], results["remaining_amounts"], results["year_records"], mc_results)
 
     with st.expander("Year-by-Year Detail", expanded=False):
         dollar_cols = {
