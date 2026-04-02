@@ -445,7 +445,7 @@ def main():
         else:
             annual_work_amount = 0.0
         initial_amount = st.number_input(
-            "💵 Starting Savings",
+            "Starting Savings 💵",
             min_value=0.0,
             value=DEFAULT_VALUES["initial_amount"],
             step=10000.0,
