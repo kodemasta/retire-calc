@@ -383,7 +383,44 @@ def draw_chart(ages, remaining_amounts, year_records, mc_results=None):
 
 
 def main():
-    st.set_page_config(page_title="Retirement Calculator", page_icon=_ICON, layout="wide")
+    st.set_page_config(
+        page_title="Retirement Budget Calculator - Plan Your Financial Future",
+        page_icon=_ICON,
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            "About": "A comprehensive retirement budget calculator to project your financial future, calculate maximum budgets, and optimize retirement spending strategies."
+        }
+    )
+    
+    # Add metadata for SEO
+    st.markdown(
+        """
+        <meta name="description" content="Free retirement budget calculator tool to project savings, calculate Maximum Starting Monthly Budget, analyze Social Security, taxes, and plan your retirement with investment growth modeling.">
+        <meta name="keywords" content="retirement budget calculator, retirement planning, budget planning, social security, investment calculator, financial planning, retirement age">
+        <meta property="og:title" content="Retirement Budget Calculator - Plan Your Financial Future">
+        <meta property="og:description" content="Calculate your Maximum Starting Monthly Budget and optimize your retirement spending strategy with investment growth projections.">
+        <meta property="og:type" content="website">
+        <meta name="author" content="Bob Sheehan">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Retirement Budget Calculator",
+            "description": "A comprehensive retirement budget calculator to project financial future and calculate maximum budgets",
+            "applicationCategory": "FinanceApplication",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            }
+        }
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+    
     st.markdown(
         """<style>
         div.block-container { padding-top: 1rem; }
@@ -391,7 +428,7 @@ def main():
         </style>""",
         unsafe_allow_html=True,
     )
-    st.title("Retirement Calculator")
+    st.title("🎯 Retirement Budget Calculator")
 
     # Load saved values and merge with defaults
     saved_values = load_saved_values()
@@ -599,7 +636,11 @@ def main():
             ),
             2,
         )
-        st.info(f"Maximum Starting Monthly Budget: ${optimal_monthly:,}   |   Annual Budget Rate: {optimal_rate}%")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Maximum Starting Monthly Budget", f"${optimal_monthly:,}")
+        with col2:
+            st.metric("Annual Budget Rate", f"{optimal_rate}%")
         inputs["monthly_expenditure"] = float(optimal_monthly)
 
     results = run_simulation(inputs)
