@@ -150,7 +150,6 @@ def funds_survive_to_max_age(
     return current_age >= max_age
 
 
-@st.cache_data
 def binary_search(test_fn, low, high, iterations=BINARY_SEARCH_ITERATIONS):
     for _ in range(iterations):
         mid = (low + high) / 2
