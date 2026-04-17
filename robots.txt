@@ -19,4 +19,4 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://your-app-url.com/sitemap.xml
+Sitemap: https://retire-calculator.streamlit.app/sitemap.xml
