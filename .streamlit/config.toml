@@ -1,3 +1,6 @@
+[client]
+showErrorDetails = false
+
 [theme]
 base = "dark"
 primaryColor = "#7C3AED"
@@ -5,3 +8,6 @@ backgroundColor = "#0F0F13"
 secondaryBackgroundColor = "#1A1A24"
 textColor = "#E2E8F0"
 font = "sans serif"
+
+[logger]
+level = "error"

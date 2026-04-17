@@ -6,6 +6,7 @@ Run locally:
 """
 
 from datetime import datetime
+import json
 import math
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from PIL import Image
 import streamlit as st
 
 _ICON = Image.open(Path(__file__).parent / "icon.png")
+_SAVED_VALUES_FILE = Path(__file__).parent / ".saved_values.json"
 
 
 SS_TAXABLE_PCT = 0.85
@@ -43,6 +45,27 @@ def fmt_dollars(value: float) -> str:
 
 def get_current_year() -> int:
     return datetime.now().year
+
+
+def load_saved_values():
+    """Load previously saved input values from file."""
+    if _SAVED_VALUES_FILE.exists():
+        try:
+            with open(_SAVED_VALUES_FILE, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return {}
+    return {}
+
+
+def save_values_to_file(values):
+    """Save current input values to file."""
+    try:
+        with open(_SAVED_VALUES_FILE, "w") as f:
+            json.dump(values, f, indent=2)
+        return True
+    except IOError:
+        return False
 
 
 def calculate_year(remaining, current_age, soc_sec_monthly, annual_expenditure, inputs):
@@ -84,6 +107,7 @@ def calculate_year(remaining, current_age, soc_sec_monthly, annual_expenditure, 
     }
 
 
+@st.cache_data
 def funds_survive_to_max_age(
     budget_value,
     start_age,
@@ -126,6 +150,7 @@ def funds_survive_to_max_age(
     return current_age >= max_age
 
 
+@st.cache_data
 def binary_search(test_fn, low, high, iterations=BINARY_SEARCH_ITERATIONS):
     for _ in range(iterations):
         mid = (low + high) / 2
@@ -171,6 +196,7 @@ def run_mc_simulation(inputs, roi_volatility, inflation_volatility, rng):
     return ages, remaining_amounts, monthly_spends, current_age, survived
 
 
+@st.cache_data
 def run_monte_carlo(inputs, roi_volatility, inflation_volatility, n_trials=500):
     rng = np.random.default_rng()
     trials = []
@@ -210,6 +236,7 @@ def run_monte_carlo(inputs, roi_volatility, inflation_volatility, n_trials=500):
     }
 
 
+@st.cache_data
 def run_simulation(inputs):
     remaining = inputs["initial_amount"]
     soc_sec_monthly = inputs["soc_sec_payment"]
@@ -367,6 +394,10 @@ def main():
     )
     st.title("Retirement Calculator")
 
+    # Load saved values and merge with defaults
+    saved_values = load_saved_values()
+    current_defaults = {**DEFAULT_VALUES, **saved_values}
+
     if "mode" not in st.session_state:
         st.session_state.mode = "simulate"
 
@@ -388,22 +419,22 @@ def main():
                     "Annual Budget Rate (%)",
                     min_value=0.0,
                     max_value=100.0,
-                    value=DEFAULT_VALUES["annual_reduction_rate"],
+                    value=current_defaults["annual_reduction_rate"],
                 )
-                monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
+                monthly_expenditure = current_defaults["monthly_expenditure"]
             else:
                 use_pct_budget = False
                 monthly_expenditure = st.number_input(
                     "Initial Monthly Budget ($)",
                     min_value=0.0,
-                    value=DEFAULT_VALUES["monthly_expenditure"],
+                    value=current_defaults["monthly_expenditure"],
                     step=100.0,
                 )
-                annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
+                annual_reduction_rate = current_defaults["annual_reduction_rate"]
     else:
         use_pct_budget = False
-        monthly_expenditure = DEFAULT_VALUES["monthly_expenditure"]
-        annual_reduction_rate = DEFAULT_VALUES["annual_reduction_rate"]
+        monthly_expenditure = current_defaults["monthly_expenditure"]
+        annual_reduction_rate = current_defaults["annual_reduction_rate"]
 
     with st.sidebar:
         btn_col1, btn_col2 = st.columns(2)
@@ -424,23 +455,23 @@ def main():
                 args=("maximize",),
             )
         start_age = st.number_input(
-            "Current Age 🕐", min_value=0, max_value=120, value=DEFAULT_VALUES["start_age"]
+            "Current Age 🕐", min_value=0, max_value=120, value=current_defaults["start_age"]
         )
         retire_age = st.number_input(
             "Retirement Age 🕐",
             min_value=start_age,
             max_value=120,
-            value=max(DEFAULT_VALUES["retire_age"], start_age),
+            value=max(current_defaults["retire_age"], start_age),
         )
         max_age = st.number_input(
-            "End of Life 🤞", min_value=1, max_value=130, value=DEFAULT_VALUES["max_age"]
+            "End of Life 🤞", min_value=1, max_value=130, value=current_defaults["max_age"]
         )
         eol_indicator = st.empty()
         if retire_age != start_age:
             annual_work_amount = st.number_input(
                 "Annual Work Income 💵",
                 min_value=0.0,
-                value=DEFAULT_VALUES["annual_work_amount"],
+                value=current_defaults["annual_work_amount"],
                 step=5000.0,
             )
         else:
@@ -448,37 +479,37 @@ def main():
         initial_amount = st.number_input(
             "Starting Savings 💵",
             min_value=0.0,
-            value=DEFAULT_VALUES["initial_amount"],
+            value=current_defaults["initial_amount"],
             step=10000.0,
         )
         interest = st.number_input(
             "ROI (%)",
             min_value=0.0,
             max_value=100.0,
-            value=DEFAULT_VALUES["interest_rate"],
+            value=current_defaults["interest_rate"],
         )
         inflation = st.number_input(
             "Inflation Rate (%)",
             min_value=0.0,
             max_value=100.0,
-            value=DEFAULT_VALUES["inflation_rate"],
+            value=current_defaults["inflation_rate"],
         )
         tax_rate = st.number_input(
             "Tax Rate (%)",
             min_value=0.0,
             max_value=100.0,
-            value=DEFAULT_VALUES["tax_rate"],
+            value=current_defaults["tax_rate"],
         )
         start_soc_sec = st.number_input(
             "Social Security Age 🕐",
             min_value=start_age,
             max_value=120,
-            value=max(DEFAULT_VALUES["start_soc_sec"], start_age),
+            value=max(current_defaults["start_soc_sec"], start_age),
         )
         soc_sec_payment = st.number_input(
             "Social Security Monthly 💵",
             min_value=0.0,
-            value=DEFAULT_VALUES["soc_sec_payment"],
+            value=current_defaults["soc_sec_payment"],
             step=100.0,
         )
 
@@ -492,6 +523,35 @@ def main():
             mc_trials = 500
             roi_volatility = 5.0
             inflation_volatility = 2.0
+
+        st.divider()
+        save_col1, save_col2 = st.columns(2)
+        with save_col1:
+            if st.button("💾 Save Values", use_container_width=True, key="save_btn"):
+                saved = {
+                    "start_age": start_age,
+                    "retire_age": retire_age,
+                    "start_soc_sec": start_soc_sec,
+                    "soc_sec_payment": soc_sec_payment,
+                    "initial_amount": initial_amount,
+                    "monthly_expenditure": monthly_expenditure,
+                    "annual_reduction_rate": annual_reduction_rate,
+                    "annual_work_amount": annual_work_amount,
+                    "interest_rate": interest,
+                    "tax_rate": tax_rate,
+                    "inflation_rate": inflation,
+                    "max_age": max_age,
+                }
+                if save_values_to_file(saved):
+                    st.success("✓ Values saved!")
+                else:
+                    st.error("Failed to save values")
+        with save_col2:
+            if st.button("🔄 Reset to Defaults", use_container_width=True, key="reset_btn"):
+                if _SAVED_VALUES_FILE.exists():
+                    _SAVED_VALUES_FILE.unlink()
+                st.success("✓ Reset to defaults!")
+                st.rerun()
 
     inputs = {
         "start_age": float(start_age),
