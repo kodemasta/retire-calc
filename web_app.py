@@ -417,6 +417,18 @@ def main():
             }
         }
         </script>
+        <!-- Google Analytics tracking code -->
+        <!-- IMPORTANT: Replace G-XXXXXXXXXX with your Google Analytics Measurement ID -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-XXXXXXXXXX', {
+                'page_path': window.location.pathname,
+                'page_title': document.title
+            });
+        </script>
         """,
         unsafe_allow_html=True,
     )
@@ -588,6 +600,23 @@ def main():
                     _SAVED_VALUES_FILE.unlink()
                 st.success("✓ Reset to defaults!")
                 st.rerun()
+
+        st.divider()
+        with st.expander("📊 Usage Analytics", expanded=False):
+            st.markdown("""
+            **Google Analytics Tracking Enabled**
+            
+            This app collects anonymous usage statistics to help improve the experience.
+            
+            To view detailed statistics:
+            1. The app owner can see real-time visitor data
+            2. Daily/weekly usage reports
+            3. User engagement metrics
+            
+            [View Analytics Guide →](https://github.com/kodemasta/retire-calc/blob/main/GOOGLE_ANALYTICS_SETUP.md)
+            
+            📈 *Your visit is automatically tracked*
+            """)
 
     inputs = {
         "start_age": float(start_age),
