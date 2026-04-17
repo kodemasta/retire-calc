@@ -17,6 +17,7 @@ import streamlit as st
 
 _ICON = Image.open(Path(__file__).parent / "icon.png")
 _SAVED_VALUES_FILE = Path(__file__).parent / ".saved_values.json"
+_VISITS_FILE = Path(__file__).parent / ".visits.json"
 
 
 SS_TAXABLE_PCT = 0.85
@@ -66,6 +67,46 @@ def save_values_to_file(values):
         return True
     except IOError:
         return False
+
+
+def track_visit():
+    """Track a visitor and return visit stats."""
+    try:
+        if _VISITS_FILE.exists():
+            with open(_VISITS_FILE, "r") as f:
+                visits_data = json.load(f)
+        else:
+            visits_data = {"total_visits": 0, "visits_today": 0, "last_visit_date": None}
+        
+        today = datetime.now().strftime("%Y-%m-%d")
+        
+        # Reset daily counter if it's a new day
+        if visits_data.get("last_visit_date") != today:
+            visits_data["visits_today"] = 0
+            visits_data["last_visit_date"] = today
+        
+        # Increment counters
+        visits_data["total_visits"] += 1
+        visits_data["visits_today"] += 1
+        
+        # Save back to file
+        with open(_VISITS_FILE, "w") as f:
+            json.dump(visits_data, f, indent=2)
+        
+        return visits_data
+    except (json.JSONDecodeError, IOError):
+        return {"total_visits": 0, "visits_today": 0, "last_visit_date": None}
+
+
+def get_visit_stats():
+    """Get current visit statistics without incrementing."""
+    try:
+        if _VISITS_FILE.exists():
+            with open(_VISITS_FILE, "r") as f:
+                return json.load(f)
+        return {"total_visits": 0, "visits_today": 0, "last_visit_date": None}
+    except (json.JSONDecodeError, IOError):
+        return {"total_visits": 0, "visits_today": 0, "last_visit_date": None}
 
 
 def calculate_year(remaining, current_age, soc_sec_monthly, annual_expenditure, inputs):
@@ -417,18 +458,6 @@ def main():
             }
         }
         </script>
-        <!-- Google Analytics tracking code -->
-        <!-- IMPORTANT: Replace G-XXXXXXXXXX with your Google Analytics Measurement ID -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-XXXXXXXXXX', {
-                'page_path': window.location.pathname,
-                'page_title': document.title
-            });
-        </script>
         """,
         unsafe_allow_html=True,
     )
@@ -602,21 +631,13 @@ def main():
                 st.rerun()
 
         st.divider()
-        with st.expander("📊 Usage Analytics", expanded=False):
-            st.markdown("""
-            **Google Analytics Tracking Enabled**
-            
-            This app collects anonymous usage statistics to help improve the experience.
-            
-            To view detailed statistics:
-            1. The app owner can see real-time visitor data
-            2. Daily/weekly usage reports
-            3. User engagement metrics
-            
-            [View Analytics Guide →](https://github.com/kodemasta/retire-calc/blob/main/GOOGLE_ANALYTICS_SETUP.md)
-            
-            📈 *Your visit is automatically tracked*
-            """)
+        # Track the visit and display stats
+        visit_stats = track_visit()
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("👥 Total Visits", f"{visit_stats['total_visits']:,}")
+        with col2:
+            st.metric("📅 Today's Visits", f"{visit_stats['visits_today']:,}")
 
     inputs = {
         "start_age": float(start_age),
