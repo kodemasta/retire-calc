@@ -632,8 +632,12 @@ def main():
                 st.rerun()
 
         st.divider()
-        # Track the visit and display stats
-        visit_stats = track_visit()
+        # Track the visit and display stats (only increment on first page load)
+        if "visit_tracked" not in st.session_state:
+            visit_stats = track_visit()
+            st.session_state.visit_tracked = True
+        else:
+            visit_stats = get_visit_stats()
         col1, col2 = st.columns(2)
         with col1:
             st.metric("👥 Total Visits", f"{visit_stats['total_visits']:,}")

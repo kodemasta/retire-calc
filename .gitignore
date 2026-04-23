@@ -38,6 +38,7 @@ Thumbs.db
 # Streamlit local files
 .streamlit/secrets.toml
 .saved_values.json
+.visits.json
 
 # Logs
 *.log
